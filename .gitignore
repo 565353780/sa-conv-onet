@@ -1,0 +1,6 @@
+# compiled
+__pycache__
+build
+*.so
+mcubes.cpp
+simplify_mesh.cpp
