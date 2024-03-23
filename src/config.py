@@ -19,7 +19,7 @@ def load_config(path, default_path=None):
     '''
     # Load configuration from file itself
     with open(path, 'r') as f:
-        cfg_special = yaml.load(f)
+        cfg_special = yaml.load(f,Loader=yaml.FullLoader)
 
     # Check if we should inherit from a config
     inherit_from = cfg_special.get('inherit_from')
@@ -30,7 +30,7 @@ def load_config(path, default_path=None):
         cfg = load_config(inherit_from, default_path)
     elif default_path is not None:
         with open(default_path, 'r') as f:
-            cfg = yaml.load(f)
+            cfg = yaml.load(f,Loader=yaml.FullLoader)
     else:
         cfg = dict()
 
@@ -56,9 +56,24 @@ def update_recursive(dict1, dict2):
         else:
             dict1[k] = v
 
-
+'''
 # Models
 def get_model(cfg, device=None, dataset=None):
+    # Returns the model instance.
+
+    #Args:
+        cfg (dict): config dictionary
+        device (device): pytorch device
+        dataset (dataset): dataset
+    
+    method = cfg['method']
+    model = method_dict[method].config.get_model(
+        cfg, device=device, dataset=dataset)
+    return model
+'''
+
+#after modify
+def get_model(device=None, dataset=None):
     ''' Returns the model instance.
 
     Args:
@@ -66,10 +81,12 @@ def get_model(cfg, device=None, dataset=None):
         device (device): pytorch device
         dataset (dataset): dataset
     '''
-    method = cfg['method']
+    method = "conv_onet" #cfg['method']
     model = method_dict[method].config.get_model(
-        cfg, device=device, dataset=dataset)
+        device=device)
     return model
+
+
 
 
 # Trainer
@@ -87,19 +104,35 @@ def get_trainer(model, optimizer, cfg, device):
         model, optimizer, cfg, device)
     return trainer
 
-
+'''
 # Generator for final mesh extraction
 def get_generator(model, cfg, device):
-    ''' Returns a generator instance.
+    # Returns a generator instance.
+
+    #Args:
+        model (nn.Module): the model which is used
+        cfg (dict): config dictionary
+        device (device): pytorch device
+
+    method = cfg['method']
+    generator = method_dict[method].config.get_generator(model, cfg, device)
+    return generator
+'''
+
+#after modify
+def get_generator(model, device):
+    '''Returns a generator instance.
 
     Args:
         model (nn.Module): the model which is used
         cfg (dict): config dictionary
         device (device): pytorch device
     '''
-    method = cfg['method']
-    generator = method_dict[method].config.get_generator(model, cfg, device)
+    method = "conv_onet"
+    generator = method_dict[method].config.get_generator(model, device)
     return generator
+
+
 
 
 # Datasets
@@ -114,7 +147,10 @@ def get_dataset(mode, cfg, return_idx=False):
     method = cfg['method']
     dataset_type = cfg['data']['dataset']
     dataset_folder = cfg['data']['path']
+    print("aaaaa")
+    print(dataset_folder)
     categories = cfg['data']['classes']
+    print(categories)
 
     # Get split
     splits = {

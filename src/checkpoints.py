@@ -58,6 +58,8 @@ class CheckpointIO(object):
         if not os.path.isabs(filename):
             filename = os.path.join(self.checkpoint_dir, filename)
 
+        #print(filename)
+        #exit()
         if os.path.exists(filename):
             print(filename)
             print('=> Loading checkpoint from local file...')

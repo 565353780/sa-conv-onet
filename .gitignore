@@ -4,3 +4,10 @@ build
 *.so
 mcubes.cpp
 simplify_mesh.cpp
+.DS_Store
+
+# output
+out
+
+# downloaded
+/data

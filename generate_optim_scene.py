@@ -14,6 +14,11 @@ from src.utils.visualize import visualize_data
 from src.utils.voxels import VoxelGrid
 from tensorboardX import SummaryWriter
 
+import numpy as np
+import open3d as o3d
+
+
+
 parser = argparse.ArgumentParser(
     description='Extract meshes from occupancy process.'
 )
@@ -36,9 +41,15 @@ vis_n_outputs = cfg['generation']['vis_n_outputs']
 if vis_n_outputs is None:
     vis_n_outputs = -1
 
+
 # Dataset
 dataset = config.get_dataset('test', cfg, return_idx=True)
+data = dataset.__getitem__(0)
+print(data)
+#print(dataset)
 print('test_split:', cfg['data']['test_split'])
+#exit()
+
 
 # Model
 model = config.get_model(cfg, device=device, dataset=dataset)
@@ -75,7 +86,13 @@ model.eval()
 # Count how many models already created
 model_counter = defaultdict(int)
 
-for it, data in enumerate(tqdm(test_loader)):
+
+
+for it, data in enumerate(test_loader):
+    #print("bbbbbbbbbb")
+    #print(it)
+    #print("-----------")
+    #print(data)
     # Output folders
     mesh_dir = os.path.join(generation_dir, 'meshes')
     pointcloud_dir = os.path.join(generation_dir, 'pointcloud')
@@ -88,22 +105,28 @@ for it, data in enumerate(tqdm(test_loader)):
 
     try:
         model_dict = dataset.get_model_dict(idx)
+        print(model_dict)
     except AttributeError:
         model_dict = {'model': str(idx), 'category': 'n/a'}
     
     modelname = model_dict['model']
     category_id = model_dict.get('category', 'n/a')
+    #print(category_id)
+    print(model_dict.get('category'))
 
     try:
         category_name = dataset.metadata[category_id].get('name', 'n/a')
+        print(dataset.metadata[category_id].get('name'))
     except AttributeError:
         category_name = 'n/a'
+        
 
     if category_id != 'n/a':
         mesh_dir = os.path.join(mesh_dir, str(category_id))
         pointcloud_dir = os.path.join(pointcloud_dir, str(category_id))
         in_dir = os.path.join(in_dir, str(category_id))
-
+        
+        print("uuuuuuuu")
         folder_name = str(category_id)
         if category_name != 'n/a':
             folder_name = str(folder_name) + '_' + category_name.split(',')[0]
@@ -137,7 +160,9 @@ for it, data in enumerate(tqdm(test_loader)):
         'modelname': modelname,
     }
     time_dicts.append(time_dict)
+    #print(time_dicts)
 
+  
     # Generate outputs
     out_file_dict = {}
 
@@ -179,11 +204,30 @@ for it, data in enumerate(tqdm(test_loader)):
         mesh.export(mesh_out_file)
         out_file_dict['mesh'] = mesh_out_file
 
+    '''
+    def toMesh(point_cloud_file_path):
+        point_cloud = o3d.io.read_point_cloud(point_cloud_file_path)
+        points = np.asarray(point_cloud.points) # nx3 array
+        normals = point_cloud.estimate_normals()
+        inputs = torch.from_numpy(points)
+        data = {
+          'points': inputs,
+          'normals':normals,
+          'idx': 0,
+        }
+        mesh = generate_mesh_func(mode,0,th=th,suffix=f"th{th}")
+        return mesh
+    '''
+     
+
+
+
+
     # Generate results before test-time optimization (results of pretrained ConvONet)
     if generate_mesh:
         th = cfg['test']['threshold']
         generate_mesh_func(modelname, 0, th=th, suffix=f"th{th}")
-    
+    continue
     # Intialize training using pretrained model, and then optimize network parameters for each observed input.
     ft_onlyencoder = cfg['test_optim']['onlyencoder'] 
     print('ft only encoder', ft_onlyencoder)
@@ -203,6 +247,7 @@ for it, data in enumerate(tqdm(test_loader)):
     time_dict['net_optim'] = 0
     time_dict['net_optim_iter'] = 0
     for iter in range(0, n_iter):
+        #break
         t0 = time.time()
         loss = trainer.sign_agnostic_optim_step(data, state_dict, batch_size, npoints1, npoints2, sigma)
         logger.add_scalar('test_optim/loss', loss, iter)
@@ -260,12 +305,30 @@ for it, data in enumerate(tqdm(test_loader)):
 time_df = pd.DataFrame(time_dicts)
 time_df.set_index(['idx'], inplace=True)
 time_df.to_pickle(out_time_file)
+print(out_time_file)
+
+
+
+
+
+
+
+import pickle
+with open(out_time_file, 'rb') as f:
+    data = pickle.load(f)
+    print(data)
+#exit()
+
 
 # Create pickle files  with main statistics
-time_df_class = time_df.groupby(by=['class name']).mean()
-time_df_class.to_pickle(out_time_file_class)
+# print(time_df['class name'].__module__)
+#exit()
+# print(time_df.groupby(by=['class name']).mean())
+#exit()
+# time_df_class = time_df.groupby(by=['class name']).mean()
+# time_df_class.to_pickle(out_time_file_class)
 
 # Print results
-time_df_class.loc['mean'] = time_df_class.mean()
-print('Timings [s]:')
-print(time_df_class)
+# time_df_class.loc['mean'] = time_df_class.mean()
+# print('Timings [s]:')
+# print(time_df_class)

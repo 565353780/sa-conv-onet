@@ -130,6 +130,7 @@ class Shapes3dDataset(data.Dataset):
         '''
         return len(self.models)
 
+
     def __getitem__(self, idx):
         ''' Returns an item of the dataset.
 

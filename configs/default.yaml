@@ -9,8 +9,8 @@ data:
   val_split: val
   test_split: test
   dim: 3
-  points_file: points.npz
-  points_iou_file: points.npz
+  # points_file: points.npz
+  # points_iou_file: points.npz
   multi_files: null
   points_subsample: 1024
   points_unpackbits: true
@@ -21,8 +21,8 @@ data:
   img_with_camera: false
   img_augment: false
   n_views: 24
-  pointcloud_file: pointcloud.npz
-  pointcloud_chamfer_file: pointcloud.npz
+  # pointcloud_file: pointcloud.npz
+  # pointcloud_chamfer_file: pointcloud.npz
   pointcloud_n: 256
   pointcloud_target_n: 1024
   pointcloud_noise: 0.05
@@ -58,8 +58,8 @@ generation:
   batch_size: 100000
   refinement_step: 0
   vis_n_outputs: 30
-  generate_mesh: true
-  generate_pointcloud: true
+  # generate_mesh: true
+  # generate_pointcloud: true
   generation_dir: generation
   use_sampling: false
   resolution_0: 32

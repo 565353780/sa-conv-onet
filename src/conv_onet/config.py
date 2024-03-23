@@ -11,15 +11,15 @@ from src.common import decide_total_volume_range, update_reso
 from torchvision import transforms
 import numpy as np
 
-
+'''
 def get_model(cfg, device=None, dataset=None, **kwargs):
-    ''' Return the Occupancy Network model.
+    #zhushi  Return the Occupancy Network model.
 
     Args:
         cfg (dict): imported yaml config 
         device (device): pytorch device
         dataset (dataset): dataset
-    '''
+    
     decoder = cfg['model']['decoder']
     encoder = cfg['model']['encoder']
     dim = cfg['data']['dim']
@@ -55,7 +55,8 @@ def get_model(cfg, device=None, dataset=None, **kwargs):
         # if dataset.split == 'val': #TODO run validation in room level during training
         else:
             if 'grid' in fea_type:
-                encoder_kwargs['grid_resolution'] = dataset.total_reso
+                # x2 = ...
+                encoder_kwargs['grid_resolution'] = dataset.total_reso # = f(3.5, x2, ...)
             if bool(set(fea_type) & set(['xz', 'xy', 'yz'])):
                 encoder_kwargs['plane_resolution'] = dataset.total_reso
     
@@ -80,6 +81,82 @@ def get_model(cfg, device=None, dataset=None, **kwargs):
     )
 
     return model
+'''
+
+#modify
+def get_model(device=None, dataset=None, **kwargs):
+    ''' Return the Occupancy Network model.
+
+    Args:
+        cfg (dict): imported yaml config 
+        device (device): pytorch device
+        dataset (dataset): dataset
+    '''
+    decoder = "simple_local"    #cfg['model']['decoder']
+    encoder = "pointnet_local_pool"  #cfg['model']['encoder']
+    dim = 3   #cfg['data']['dim']
+    c_dim = 32   #cfg['model']['c_dim']
+    decoder_kwargs ={
+        'sample_mode': "bilinear",
+        'hidden_size': 32,
+    } #cfg['model']['decoder_kwargs']
+    encoder_kwargs ={
+         'hidden_dim': 32,
+         'plane_type': 'grid',
+         'grid_resolution': 64,
+         'unet3d': True,
+         'unet3d_kwargs':{
+            'num_levels': 4,
+            'f_maps': 32,
+            'in_channels': 32,
+            'out_channels': 32,
+         }
+    } #cfg['model']['encoder_kwargs']
+    padding =0.1  #cfg['data']['padding']
+    
+    # for pointcloud_crop
+    '''
+    try: 
+        encoder_kwargs['unit_size'] =0.005  # cfg['data']['unit_size']
+        decoder_kwargs['unit_size'] =0.005  # cfg['data']['unit_size']
+    except:
+        pass
+    '''
+    # local positional encoding
+    '''
+    if 'local_coord' in cfg['model'].keys():
+        encoder_kwargs['local_coord'] = cfg['model']['local_coord']
+        decoder_kwargs['local_coord'] = cfg['model']['local_coord']
+    if 'pos_encoding' in cfg['model']:
+        encoder_kwargs['pos_encoding'] = cfg['model']['pos_encoding']
+        decoder_kwargs['pos_encoding'] = cfg['model']['pos_encoding']
+    '''
+
+    decoder = models.decoder_dict[decoder](
+        dim=dim, c_dim=c_dim, padding=padding,
+        **decoder_kwargs
+    )
+
+    if encoder == 'idx':
+        encoder = nn.Embedding(len(dataset), c_dim)
+    elif encoder is not None:
+        encoder = encoder_dict[encoder](
+            dim=dim, c_dim=c_dim, padding=padding,
+            **encoder_kwargs
+        )
+    else:
+        encoder = None
+
+    model = models.ConvolutionalOccupancyNetwork(
+        decoder, encoder, device=device
+    )
+
+    return model
+
+
+
+
+
 
 
 def get_trainer(model, optimizer, cfg, device, **kwargs):
@@ -105,15 +182,15 @@ def get_trainer(model, optimizer, cfg, device, **kwargs):
 
     return trainer
 
-
+'''
 def get_generator(model, cfg, device, **kwargs):
-    ''' Returns the generator object.
+    #Returns the generator object.
 
-    Args:
+    #Args:
         model (nn.Module): Occupancy Network model
         cfg (dict): imported yaml config
         device (device): pytorch device
-    '''
+    
     
     if cfg['data']['input_type'] == 'pointcloud_crop':
         # calculate the volume boundary
@@ -158,6 +235,66 @@ def get_generator(model, cfg, device, **kwargs):
         vol_bound = vol_bound,
     )
     return generator
+'''
+
+#after modify
+def get_generator(model, device, **kwargs):
+    ''' Returns the generator object.
+
+    Args:
+        model (nn.Module): Occupancy Network model
+        cfg (dict): imported yaml config
+        device (device): pytorch device
+    '''
+    '''
+    if cfg['data']['input_type'] == 'pointcloud_crop':
+        # calculate the volume boundary
+        query_vol_metric = cfg['data']['padding'] + 1
+        unit_size = cfg['data']['unit_size']
+        recep_field = 2**(cfg['model']['encoder_kwargs']['unet3d_kwargs']['num_levels'] + 2)
+        if 'unet' in cfg['model']['encoder_kwargs']:
+            depth = cfg['model']['encoder_kwargs']['unet_kwargs']['depth']
+        elif 'unet3d' in cfg['model']['encoder_kwargs']:
+            depth = cfg['model']['encoder_kwargs']['unet3d_kwargs']['num_levels']
+        
+        vol_info = decide_total_volume_range(query_vol_metric, recep_field, unit_size, depth)
+        
+        grid_reso = cfg['data']['query_vol_size'] + recep_field - 1
+        grid_reso = update_reso(grid_reso, depth)
+        query_vol_size = cfg['data']['query_vol_size'] * unit_size
+        input_vol_size = grid_reso * unit_size
+        # only for the sliding window case
+        vol_bound = None
+        if cfg['generation']['sliding_window']:
+            vol_bound = {'query_crop_size': query_vol_size,
+                         'input_crop_size': input_vol_size,
+                         'fea_type': cfg['model']['encoder_kwargs']['plane_type'],
+                         'reso': grid_reso}
+
+    else: 
+        vol_bound = None
+        vol_info = None
+    '''
+
+    vol_bound = None
+    vol_info = None
+
+    generator = generation.Generator3D(
+        model,
+        device=device,
+        threshold=0.2,
+        resolution0=32,
+        upsampling_steps=2,
+        sample=False,
+        refinement_step=0,
+        simplify_nfaces=None,
+        input_type = "pointcloud",
+        padding=0.1,
+        vol_info = vol_info,
+        vol_bound = vol_bound,
+    )
+    return generator
+
 
 
 def get_data_fields(mode, cfg):

@@ -2,7 +2,7 @@ inherit_from: configs/pointcloud_crop/test_optim/room_grid64_matterport.yaml
 data:
   input_type: pointcloud_crop
   classes: ['']
-  path: data/demo/Matterport3D_processed_normalize
+  path: data/demo/Matterport3D_processed_normalize/large_scenes
   pointcloud_n: 65536
   pointcloud_noise: 0.0
   points_subsample: 65536 
@@ -17,4 +17,5 @@ data:
 training:
   out_dir: out/demo_matterport
 test:
-  model_file: https://s3.eu-central-1.amazonaws.com/avg-projects/convolutional_occupancy_networks/models/pointcloud_crop/room_grid64.pt
+  #model_file:  https://s3.eu-central-1.amazonaws.com/avg-projects/convolutional_occupancy_networks/models/pointcloud_crop/room_grid64.pt
+  model_file: room_grid64.pt

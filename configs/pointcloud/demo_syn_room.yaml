@@ -11,6 +11,7 @@ data:
 training:
   out_dir: out/demo_syn_room
 test:
-  model_file: https://s3.eu-central-1.amazonaws.com/avg-projects/convolutional_occupancy_networks/models/pointcloud/room_grid64.pt
+  model_file: room_grid64.pt
+  #model_file: https://s3.eu-central-1.amazonaws.com/avg-projects/convolutional_occupancy_networks/models/pointcloud/room_grid64.pt
 generation:
   generation_dir: generation
